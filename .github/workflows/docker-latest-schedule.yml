@@ -4,10 +4,9 @@ on:
   schedule:
     - cron: '05 23 * * *'
   push:
-    paths-ignore:
-      - '*.md'
-      - '.github/**'
-      - 'LICENSE'
+    paths:
+      - 'ppgw/**'
+      - '!ppgw/*.md'
   workflow_dispatch:
 permissions:
   contents: write
@@ -15,6 +14,9 @@ permissions:
 jobs:
   build_release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ppgw
     steps:
     - name: Checkout code
       uses: actions/checkout@main
@@ -44,7 +46,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@master
       with:
-        context: "./iso"
+        context: "./ppgw/iso"
         push: true
         platforms: linux/amd64
         tags: sliamb/ppgwiso
