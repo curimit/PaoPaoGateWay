@@ -1,0 +1,77 @@
+#cloud-config
+# PaoPao Gateway (cloud-init edition) - NoCloud user-data template
+#
+# Works with any datasource that accepts cloud-config user-data:
+# Proxmox VE (cicustom), ESXi/KVM/VirtualBox (NoCloud seed ISO),
+# OpenStack, bare-metal autoinstall, etc. See docs/ for walkthroughs.
+#
+# Replace every <PLACEHOLDER> before use.
+
+hostname: PaoPaoGW
+timezone: Asia/Shanghai
+manage_etc_hosts: false
+
+# --- Login (optional but recommended) --------------------------------------
+# Without this section you will have no way to log in to the VM.
+users:
+  - name: ubuntu
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    # ssh_authorized_keys:
+    #   - ssh-ed25519 <YOUR_SSH_KEY>
+# To allow console/password login instead, uncomment:
+# ssh_pwauth: true
+# chpasswd:
+#   expire: false
+#   users:
+#     - name: ubuntu
+#       password: <YOUR_PASSWORD>
+#       type: text
+
+# --- Gateway configuration (optional) ---------------------------------------
+# If you run PaoPaoDNS on your LAN, DELETE this write_files block entirely:
+# the gateway will discover its config from http://paopao.dns:7889
+# automatically, exactly like the ISO edition.
+#
+# Keep it only for standalone/local mode.
+write_files:
+  - path: /www/ppgw.ini
+    permissions: "0644"
+    content: |
+      #paopao-gateway
+      # mode=socks5|ovpn|yaml|suburl|free
+      mode=suburl
+      suburl="<YOUR_SUBSCRIPTION_URL>"
+      subtime=1d
+      fake_cidr=7.0.0.0/8
+      dns_ip=223.5.5.5
+      dns_port=53
+      clash_web_port="80"
+      clash_web_password="CHANGE_ME"
+      openport=no
+      udp_enable=no
+      sleeptime=30
+      fast_node=yes
+      test_node_url="https://www.youtube.com/generate_204"
+
+# --- Bootstrap ---------------------------------------------------------------
+runcmd:
+  - |
+    set -x
+    # Optional LAN source for install.sh/payload.tar.gz, e.g.
+    # "http://192.168.1.2:8080/ppgw". Leave empty to use mirrors/GitHub.
+    export PPGW_BASE_URL=""
+    export PPGW_REPO="curimit/PaoPaoGateWay"
+    GH="https://github.com/${PPGW_REPO}/releases/latest/download"
+    for src in "$PPGW_BASE_URL" "https://ghfast.top/${GH}" "https://gh-proxy.com/${GH}" "$GH"; do
+      [ -n "$src" ] || continue
+      src="${src%/}"
+      if curl -fsSL --connect-timeout 15 -o /tmp/ppgw-install.sh "$src/install.sh"; then
+        break
+      fi
+    done
+    bash /tmp/ppgw-install.sh && touch /var/lib/ppgw-installed
+  - |
+    # Reboot to apply net.ifnames=0 (eth0 naming) and start ppgw.service.
+    [ -f /var/lib/ppgw-installed ] && reboot
