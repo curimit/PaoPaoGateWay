@@ -1,0 +1,5 @@
+# NTP sources reachable from mainland China (chrony reads this in
+# addition to the distribution defaults in /etc/chrony/chrony.conf).
+server ntp.aliyun.com iburst
+server ntp.tencent.com iburst
+server ntp.ntsc.ac.cn iburst

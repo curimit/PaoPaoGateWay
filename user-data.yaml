@@ -73,5 +73,5 @@ runcmd:
     done
     bash /tmp/ppgw-install.sh && touch /var/lib/ppgw-installed
   - |
-    # Reboot to apply net.ifnames=0 (eth0 naming) and start ppgw.service.
+    # Reboot to start the gateway cleanly (netplan/sysctl/ppgw.service).
     [ -f /var/lib/ppgw-installed ] && reboot

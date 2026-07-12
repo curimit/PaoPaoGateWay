@@ -6,7 +6,7 @@
 
 用官方 ISO 正常安装 Ubuntu Server 24.04 LTS(最小化安装即可),确保:
 
-- 机器只需一块网卡接入 LAN(与 ISO 版相同的单臂部署模型)
+- 至少一个网口接入 LAN(单臂部署模型;安装完成后任意网口插线均可,全部网口自动 DHCP)
 - 安装时配置好网络(DHCP 或静态均可)与一个管理用户
 
 ## 2. 运行安装脚本
@@ -35,6 +35,6 @@ curl -fsSL https://github.com/curimit/PaoPaoGateWay/releases/latest/download/ins
 sudo reboot
 ```
 
-重启后网卡将命名为 `eth0`,`ppgw.service` 自动启动,访问 `http://<主机IP>/ui` 打开面板。
+重启后 `ppgw.service` 自动启动,访问 `http://<主机IP>/ui` 打开面板。
 
-> 多网卡机器:脚本固定使用 `eth0`(即第一块网卡,PCI 顺序),请把它接入 LAN;其余网卡不会被网关使用。
+> 多网卡机器:所有网口均开启 DHCP,网关自动使用持有默认路由的那个网口,插任意口即可。

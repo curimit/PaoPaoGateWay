@@ -33,7 +33,7 @@ flowchart LR
 ## 系统要求
 
 - Ubuntu Server 24.04 LTS(推荐)或 22.04 LTS,amd64
-- 1 GB 内存、8 GB 磁盘、1 块接入局域网的网卡(单臂部署,与原版相同)
+- 1 GB 内存、8 GB 磁盘、至少一个网口接入局域网(单臂部署;全部网口自动 DHCP,插任意口即可)
 - 平台:Proxmox VE / ESXi / KVM / VirtualBox / Hyper-V / 裸机
 
 ## 快速开始
@@ -55,7 +55,7 @@ flowchart LR
 部署要点:
 
 1. 修改 `user-data.yaml`:配置登录方式;若局域网已有 PaoPaoDNS,**删除** `write_files` 段(自动发现配置),否则内联你的 `/www/ppgw.ini`
-2. 首次开机自动安装并重启一次(应用 `eth0` 网卡命名),之后 `ppgw.service` 常驻
+2. 首次开机自动安装并重启一次,之后 `ppgw.service` 常驻;所有网口自动 DHCP,插任意口即可
 3. 浏览器访问 `http://<网关IP>/ui` 打开管理面板(密码为 `clash_web_password`)
 4. 把客户端设备的网关/静态路由指向本机 IP
 
@@ -90,19 +90,19 @@ PPSUB 组合订阅(`suburl="ppsub@..."`)同样完全支持,见[原版 PPSUB 指�
 |---|---|---|
 | 底座 | 定制 OpenWrt(ISO 光盘启动) | Ubuntu Server 24.04(标准安装) |
 | 进程管理 | rc.local + procd | systemd(`ppgw.service`) |
-| 网络配置 | uci `/etc/config/network` | netplan(`/etc/netplan/99-ppgw.yaml`) |
+| 网络配置 | uci `/etc/config/network` | netplan,全网口 DHCP + 默认路由动态探测 |
 | 配置注入 | Docker 定制 ISO / DHCP 发现 | cloud-init user-data / DHCP 发现 |
 | 运行时逻辑 | `ppg.sh` + `ppgw` + mihomo | **同源照搬,功能一致** |
 
-运行时脚本相对原版仅做机械替换:bash 解释器、`ps ax`、`ntpdate` 对时、日志走 systemd journal(原版写 `/dev/tty0`)、IPv6 开关改为 `/etc/ppgw/ipv6_enabled` 标志文件(原版读 uci 网络配置)。与 PaoPaoDNS 的对接协议、配置格式、Web 面板、API 行为均与原版一致,可直接替换存量 ISO 网关。
+运行时脚本相对原版仅做机械替换:bash 解释器、`ps ax`、时间同步交给 chrony 常驻管理(原版每次开机 busybox ntpd 单次对时)、日志走 systemd journal(原版写 `/dev/tty0`)、网卡由默认路由动态探测(原版硬编码 `eth0`)、IPv6 开关改为 `/etc/ppgw/ipv6_enabled` 标志文件(原版读 uci 网络配置)。与 PaoPaoDNS 的对接协议、配置格式、Web 面板、API 行为均与原版一致,可直接替换存量 ISO 网关。
 
 ## FAQ
 
 **Q: 中国大陆网络下载失败?**
 `install.sh` 会按 局域网源(`PPGW_BASE_URL`)→ gh-proxy 镜像 → GitHub 直连 的顺序尝试,均带 sha256 校验。最稳妥的方式是把 Release 的三个文件放到局域网 HTTP 服务上,在 user-data 中设置 `PPGW_BASE_URL`。
 
-**Q: 为什么要重启一次?网卡名是怎么处理的?**
-运行时脚本沿用原版的 `eth0` 硬编码。安装时写入内核参数 `net.ifnames=0`,重启后首块网卡固定命名为 `eth0`,对 PVE/ESXi/裸机通用。
+**Q: 网卡是怎么处理的?多网口机器插哪个口?**
+netplan 对所有 `e*` 网口开启 DHCP,运行时自动使用持有默认路由的网口,不依赖网卡命名,插任意口即可。安装后的重启是为了让 netplan/sysctl/服务以干净状态生效。
 
 **Q: 53 端口被 systemd-resolved 占用?**
 安装时已通过 `DNSStubListener=no` 释放 53 端口,并把 `/etc/resolv.conf` 指向 DHCP 下发的真实上游 DNS(脚本的 `paopao.dns` 发现依赖它)。

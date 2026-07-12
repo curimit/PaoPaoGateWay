@@ -16,18 +16,27 @@ log() {
     echo -e "[PaoPaoGW $(date +%H%M%S)] ""$1"
 }
 
+get_ppgw_if() {
+    # WAN-facing interface = whoever holds the default route.
+    # Any ethernet port works: netplan runs DHCP on every e* interface.
+    ip -4 route show default 2>/dev/null | grep -Eo "dev [^ ]+" | head -1 | cut -d" " -f2
+}
+
 net_ready() {
-    while ! ip addr show dev eth0 | grep -q 'inet '; do
-        log "Waiting for eth0 to be ready." warn
+    ppgw_if=$(get_ppgw_if)
+    while [ -z "$ppgw_if" ] || ! ip addr show dev "$ppgw_if" 2>/dev/null | grep -q 'inet '; do
+        log "Waiting for network (DHCP on any ethernet port)." warn
         sleep 1
+        ppgw_if=$(get_ppgw_if)
     done
-    eth0ip=$(ip -4 addr show dev eth0 scope global | grep inet | grep -Eo "$IPREX4" | head -1)
+    export ppgw_if
+    eth0ip=$(ip -4 addr show dev "$ppgw_if" scope global | grep inet | grep -Eo "$IPREX4" | head -1)
     export eth0ip
-    eth0mac=$(ip link show dev eth0 | grep -Eo "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" | head -1)
+    eth0mac=$(ip link show dev "$ppgw_if" | grep -Eo "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" | head -1)
     dns1=$(grep nameserver /etc/resolv.conf | grep -Eo "$IPREX4" | head -1)
     dns2=$(grep nameserver /etc/resolv.conf | grep -Eo "$IPREX4" | tail -1)
     if [ -z "$dns1" ]; then
-        log "Error: eth0 DNS not found." warn
+        log "Error: ""$ppgw_if"" DNS not found." warn
     fi
     if [ "$dns1" != "$dns2" ]; then
         if echo "$dns2" | grep -qEo "$IPREX4"; then
@@ -36,22 +45,24 @@ net_ready() {
     else
         eth0dns="$dns1"
     fi
-    eth0gw=$(ip r | grep eth0 | grep "default via" | grep -Eo "$IPREX4" | head -1)
-    log "eth0 ready: IP:[""$eth0ip""] MAC:[""$eth0mac""]" succ
+    eth0gw=$(ip r | grep "$ppgw_if" | grep "default via" | grep -Eo "$IPREX4" | head -1)
+    log "$ppgw_if ready: IP:[""$eth0ip""] MAC:[""$eth0mac""]" succ
     log "            DNS:[""$eth0dns""] GW:[""$eth0gw""]" succ
     if [ -f /etc/ppgw/ipv6_enabled ]; then
-        eth0ip6=$(ip -6 addr show dev eth0 scope global | grep inet6 | grep -Eo "$PUBIPREX6" | head -1)
+        eth0ip6=$(ip -6 addr show dev "$ppgw_if" scope global | grep inet6 | grep -Eo "$PUBIPREX6" | head -1)
         if [ -n "$eth0ip6" ]; then
             export eth0ip6
-            log "eth0 IPv6 ready:[""$eth0ip6""]" succ
+            log "$ppgw_if IPv6 ready:[""$eth0ip6""]" succ
         else
-            log "eth0 IPv6 not found." warn
+            log "$ppgw_if IPv6 not found." warn
         fi
     fi
 }
 
 sync_ntp() {
-    ntpdate -b 111.230.189.174 47.96.149.233 106.55.184.199 203.107.6.88
+    # chrony keeps the clock disciplined continuously; just force an
+    # immediate step before TLS-sensitive operations.
+    chronyc makestep >/dev/null 2>&1
 }
 
 getsha256() {
@@ -806,8 +817,12 @@ reload_gw() {
         ex_dns="223.5.5.5:53"
     fi
 
+    if [ -z "$ppgw_if" ]; then
+        ppgw_if=$(get_ppgw_if)
+    fi
     fake_cidr_escaped=$(echo "$fake_cidr" | sed 's/\//\\\//g')
     sed 's/\r/\n/g' /etc/config/clash/base.yaml >/tmp/clash_base.yaml
+    sed -i "s/{ppgw_if}/$ppgw_if/g" /tmp/clash_base.yaml
     sed -i "s/{fake_cidr}/$fake_cidr_escaped/g" /tmp/clash_base.yaml
     sed -i "s/{clash_web_port}/$clash_web_port/g" /tmp/clash_base.yaml
     sed -i "s/{dns_ip}/$dns_ip/g" /tmp/clash_base.yaml

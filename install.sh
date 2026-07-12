@@ -37,7 +37,7 @@ log "Installing dependencies..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get -o DPkg::Lock::Timeout=600 update -q || warn "apt update failed, trying to continue with cached lists."
 apt-get -o DPkg::Lock::Timeout=600 install -q -y \
-    nftables inotify-tools ntpsec-ntpdate psmisc openvpn curl ca-certificates \
+    nftables inotify-tools chrony psmisc openvpn curl ca-certificates \
     || die "Failed to install required packages."
 
 # ---------------------------------------------------------------- payload
@@ -123,23 +123,20 @@ fi
 
 # ---------------------------------------------------------------- system
 log "Configuring system..."
-# Predictable NIC naming off: runtime scripts expect eth0.
-cat >/etc/default/grub.d/99-ppgw.cfg <<'EOF'
-GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT net.ifnames=0 biosdevname=0"
-EOF
-update-grub 2>/dev/null || warn "update-grub failed; set net.ifnames=0 manually if NIC is not eth0."
-
 # cloud-init must stop managing netplan (see 99-ppgw-network.cfg); drop the
-# generated config which pins the old interface name.
+# generated per-interface config: 99-ppgw.yaml runs DHCP on every e* port.
 rm -f /etc/netplan/50-cloud-init.yaml /etc/netplan/90-default.yaml
 
 # Free port 53 and expose real upstream DNS in /etc/resolv.conf.
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 systemctl restart systemd-resolved 2>/dev/null || true
 
+# Pick up the ppgw NTP sources (chrony replaces systemd-timesyncd).
+systemctl restart chrony 2>/dev/null || true
+
 sysctl --system >/dev/null 2>&1
 
 systemctl daemon-reload
 systemctl enable ppgw.service >/dev/null 2>&1
 
-log "Install finished. Reboot to activate the gateway (eth0 naming + ppgw.service)."
+log "Install finished. Reboot to start the gateway (ppgw.service is enabled)."
