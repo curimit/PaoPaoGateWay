@@ -9,7 +9,11 @@ CONF=/etc/ppgw/seed.conf
 [ -f "$CONF" ] || exit 0
 . "$CONF"
 
-PPGW_LOGIN_USER=ubuntu
+# The gateway is a single-purpose appliance: log in as root by default,
+# no extra user is created (the static user-data also sets "users: []"
+# so cloud-init does not create its default user either). Set
+# login_user in ppgw.conf to use a dedicated user instead.
+PPGW_LOGIN_USER="${login_user:-root}"
 
 # ------------------------------------------------------------- hostname
 if [ -n "${hostname:-}" ]; then
@@ -23,7 +27,9 @@ if ! id "$PPGW_LOGIN_USER" >/dev/null 2>&1; then
 fi
 
 # ------------------------------------------------------------------ ssh
-# Public-key login only; password authentication over SSH stays off.
+# Public-key login only; password authentication over SSH stays off
+# (root over SSH is key-only anyway: Ubuntu defaults to
+# PermitRootLogin prohibit-password).
 if [ -n "${ssh_authorized_key:-}" ]; then
     H="$(getent passwd "$PPGW_LOGIN_USER" | cut -d: -f6)"
     mkdir -p "$H/.ssh"

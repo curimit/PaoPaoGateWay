@@ -33,8 +33,9 @@ bash seed/tools/make-seed.sh --from-iso ppgw-seed.iso \
 
 | 键 | 说明 |
 |---|---|
-| `ssh_authorized_key` | SSH 公钥(填写后 `ubuntu` 用户可公钥登录;SSH 永远不开密码登录) |
+| `ssh_authorized_key` | SSH 公钥(填写后可公钥登录;SSH 永远不开密码登录) |
 | `password` | 控制台密码;两者都不填时默认 `paopao` 并强制首登修改 |
+| `login_user` | 登录账户,默认 `root`(设备型系统不额外建用户);指定其他用户名时自动创建 |
 | `hostname` | 主机名,默认 `PaoPaoGW` |
 | `net_mode` / `static_ip` / `static_gateway` / `static_dns` | 默认全口 DHCP;`net_mode="static"` 时写静态地址 |
 | `ini_*` | 任意 `ini_` 前缀的键会去掉前缀写入 `/www/ppgw.ini`(如 `ini_mode`、`ini_suburl`);全部留空 = PaoPaoDNS 自动发现 |

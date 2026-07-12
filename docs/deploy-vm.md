@@ -5,7 +5,7 @@
 ## 0. 准备文件
 
 1. 从 [Release](../../../releases/latest) 下载 `ppgw-seed.iso`
-   - 直接使用:默认 DHCP + PaoPaoDNS 自动发现,控制台用户 `ubuntu`、初始密码 `paopao`(首次登录强制修改),无 SSH
+   - 直接使用:默认 DHCP + PaoPaoDNS 自动发现,控制台用户 `root`、初始密码 `paopao`(首次登录强制修改),无 SSH
    - 需要 SSH 公钥、静态 IP 或本地 `ppgw.ini`:先按 [customize.md](customize.md) 编辑 `ppgw.conf` 并重打包
 2. 下载 Ubuntu 24.04 cloud image:
 

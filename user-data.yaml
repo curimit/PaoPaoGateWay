@@ -9,6 +9,10 @@ hostname: PaoPaoGW
 timezone: Asia/Shanghai
 manage_etc_hosts: false
 
+# No cloud-init default user (no "ubuntu" account): login is handled by
+# the ppgw-config deb - root by default, see ppgw.conf.
+users: []
+
 runcmd:
   - |
     set -x
