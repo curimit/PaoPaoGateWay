@@ -1,0 +1,17 @@
+[Unit]
+Description=PaoPao Gateway main loop
+Documentation=https://github.com/curimit/PaoPaoGateWay
+After=network-online.target nftables.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ppg.sh
+Restart=always
+RestartSec=5
+LimitNOFILE=1048576
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

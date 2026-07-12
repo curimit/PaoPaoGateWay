@@ -1,0 +1,10 @@
+# PaoPao Gateway network configuration.
+# The kernel is booted with net.ifnames=0, so the first NIC is always eth0
+# (the runtime scripts expect this name, same as the ISO edition).
+# For a static address, replace dhcp4 with addresses/routes/nameservers.
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+      link-local: []
