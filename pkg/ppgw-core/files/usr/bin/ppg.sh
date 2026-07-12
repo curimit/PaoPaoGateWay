@@ -719,6 +719,20 @@ try_conf() {
     fi
 }
 
+# tproxy needs the fwmark rule + table-100 local route to deliver
+# intercepted packets locally. networkd may wipe the rule on link
+# reconfigure, so this is re-checked on every main-loop pass.
+ensure_tproxy_route() {
+    if ! ip route list table 100 2>&1 | grep -q local; then
+        log "[ADD] Add route table 100" warn
+        ip route add local default dev lo table 100
+    fi
+    if ! ip rule | grep -q "fwmark 0x1 lookup 100"; then
+        log "[ADD] Add fwmark lookup 100" warn
+        ip rule add fwmark 1 table 100
+    fi
+}
+
 reload_gw() {
     . /etc/profile
     # ip_forward
@@ -746,19 +760,7 @@ reload_gw() {
     fi
 
     # route table
-    if ip route list table 100 2>&1 | grep -q local; then
-        log "[OK] table100 OK." succ
-    else
-        log "[ADD] Add route table 100" warn
-        ip route add local default dev lo table 100
-    fi
-
-    if ip rule | grep -q "fwmark 0x1 lookup 100"; then
-        log "[OK] fwmark0x1 OK." succ
-    else
-        log "[ADD] Add fwmark lookup 100" warn
-        ip rule add fwmark 1 table 100
-    fi
+    ensure_tproxy_route
 
     if [ -z "$fake_cidr" ]; then
         fake_cidr="7.0.0.0/8"
@@ -958,6 +960,7 @@ last_hash="empty"
 last_yaml_hash="empty"
 last_ovpn_hash="empty"
 while true; do
+    ensure_tproxy_route
     if [ -f /tmp/ppgw.ini ]; then
         . /tmp/ppgw.ini
         old_fake_cidr=$fake_cidr

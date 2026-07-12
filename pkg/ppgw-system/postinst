@@ -14,6 +14,10 @@ rm -f /etc/netplan/50-cloud-init.yaml /etc/netplan/90-default.yaml
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 systemctl restart systemd-resolved 2>/dev/null || true
 
+# Pick up networkd.conf.d/ppgw.conf (stop networkd from deleting the
+# foreign tproxy policy routing rule on link reconfigure).
+systemctl restart systemd-networkd 2>/dev/null || true
+
 # Pick up the ppgw NTP sources (chrony replaces systemd-timesyncd).
 systemctl restart chrony 2>/dev/null || true
 
