@@ -1,0 +1,11 @@
+Package: ppgw-dashboard
+Version: @VERSION@
+Architecture: all
+Maintainer: curimit <curimit@users.noreply.github.com>
+Section: net
+Priority: optional
+Description: Web dashboard for PaoPao Gateway
+ The bundled clash-dashboard (with the ppgw reload / net_rec / ppsub
+ pages), installed to /etc/config/clash/clash-dashboard/ and served by
+ the mihomo external-ui on the clash_web_port.
+ Packaged separately so it can be updated or replaced independently.

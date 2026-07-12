@@ -1,0 +1,103 @@
+#!/bin/sh
+# ppgw-config postinst: apply the per-deployment settings compiled from
+# ppgw.conf by make-seed.sh. The sanitized copy (CRLF-free) is shipped
+# inside this package as /etc/ppgw/seed.conf. Idempotent.
+set -e
+[ "$1" = "configure" ] || exit 0
+
+CONF=/etc/ppgw/seed.conf
+[ -f "$CONF" ] || exit 0
+. "$CONF"
+
+PPGW_LOGIN_USER=ubuntu
+
+# ------------------------------------------------------------- hostname
+if [ -n "${hostname:-}" ]; then
+    echo "$hostname" >/etc/hostname
+    hostnamectl set-hostname "$hostname" 2>/dev/null || true
+fi
+
+# ----------------------------------------------------------------- user
+if ! id "$PPGW_LOGIN_USER" >/dev/null 2>&1; then
+    useradd -m -s /bin/bash -G sudo "$PPGW_LOGIN_USER"
+fi
+
+# ------------------------------------------------------------------ ssh
+# Public-key login only; password authentication over SSH stays off.
+if [ -n "${ssh_authorized_key:-}" ]; then
+    H="$(getent passwd "$PPGW_LOGIN_USER" | cut -d: -f6)"
+    mkdir -p "$H/.ssh"
+    touch "$H/.ssh/authorized_keys"
+    grep -qxF "$ssh_authorized_key" "$H/.ssh/authorized_keys" ||
+        echo "$ssh_authorized_key" >>"$H/.ssh/authorized_keys"
+    chmod 700 "$H/.ssh"
+    chmod 600 "$H/.ssh/authorized_keys"
+    chown -R "$PPGW_LOGIN_USER:$PPGW_LOGIN_USER" "$H/.ssh"
+fi
+mkdir -p /etc/ssh/sshd_config.d
+cat >/etc/ssh/sshd_config.d/90-ppgw.conf <<'EOF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+EOF
+systemctl reload ssh 2>/dev/null || true
+
+# ------------------------------------------------------------- password
+# Console (VM display) login. Without any configured login, fall back to
+# a documented default password and force a change on first login.
+if [ -n "${password:-}" ]; then
+    echo "$PPGW_LOGIN_USER:$password" | chpasswd
+elif [ -z "${ssh_authorized_key:-}" ]; then
+    echo "$PPGW_LOGIN_USER:paopao" | chpasswd
+    chage -d 0 "$PPGW_LOGIN_USER"
+fi
+
+# -------------------------------------------------------------- network
+# Optional static address. The file sorts after 99-ppgw.yaml (DHCP on
+# every e* port) so it wins the netplan merge; applied on next boot.
+STATIC_PLAN=/etc/netplan/99-zz-ppgw-static.yaml
+if [ "${net_mode:-dhcp}" = "static" ] && [ -n "${static_ip:-}" ]; then
+    dns_list=""
+    for d in ${static_dns:-}; do
+        dns_list="${dns_list:+$dns_list, }$d"
+    done
+    {
+        echo "network:"
+        echo "  version: 2"
+        echo "  ethernets:"
+        echo "    all-ethernets:"
+        echo "      match:"
+        echo "        name: \"e*\""
+        echo "      dhcp4: false"
+        echo "      addresses: [$static_ip]"
+        if [ -n "${static_gateway:-}" ]; then
+            echo "      routes:"
+            echo "        - to: default"
+            echo "          via: $static_gateway"
+        fi
+        if [ -n "$dns_list" ]; then
+            echo "      nameservers:"
+            echo "        addresses: [$dns_list]"
+        fi
+    } >"$STATIC_PLAN"
+    chmod 600 "$STATIC_PLAN"
+else
+    rm -f "$STATIC_PLAN"
+fi
+
+# ------------------------------------------------------------- ppgw.ini
+# Every ini_* key in ppgw.conf becomes a line of /www/ppgw.ini (prefix
+# stripped, quoting preserved). No ini_* keys = PaoPaoDNS discovery mode.
+INI=/www/ppgw.ini
+MARK="# seeded by ppgw-config"
+if grep -q '^ini_' "$CONF"; then
+    mkdir -p /www
+    {
+        echo "#paopao-gateway"
+        echo "$MARK"
+        grep '^ini_' "$CONF" | sed 's/^ini_//'
+    } >"$INI"
+elif [ -f "$INI" ] && grep -qF "$MARK" "$INI"; then
+    rm -f "$INI"
+fi
+
+exit 0

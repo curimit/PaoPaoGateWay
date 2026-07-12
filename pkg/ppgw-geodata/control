@@ -1,0 +1,10 @@
+Package: ppgw-geodata
+Version: @VERSION@
+Architecture: all
+Maintainer: curimit <curimit@users.noreply.github.com>
+Section: net
+Priority: optional
+Description: Geodata for PaoPao Gateway (meta-rules-dat)
+ GeoIP/GeoSite databases (geoip.metadb, ASN.mmdb, GeoIP.dat, GeoSite.dat)
+ from MetaCubeX/meta-rules-dat, installed to /etc/config/clash/.
+ Packaged separately so it can be updated or replaced independently.

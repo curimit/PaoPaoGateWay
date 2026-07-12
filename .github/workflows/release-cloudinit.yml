@@ -1,14 +1,17 @@
-name: Build and Release cloud-init payload
+name: Build and Release seed ISO + offline bundle
 
 on:
   workflow_dispatch:
   push:
     branches: [main, cloud-init]
     paths:
-      - 'files/**'
-      - 'install.sh'
+      - 'pkg/**'
+      - 'ppgw.conf'
       - 'user-data.yaml'
-      - 'build-payload.sh'
+      - 'install.sh'
+      - 'build-debs.sh'
+      - 'build-bundle.sh'
+      - 'make-seed.sh'
       - 'ppgw/ppgw.go'
       - '.github/workflows/release-cloudinit.yml'
 permissions:
@@ -20,20 +23,16 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@main
+    - name: Install xorriso
+      run: sudo apt-get update -q && sudo apt-get install -y -q xorriso
     - name: Set SHSHA
       run: echo "SHSHA="$(echo "${{ github.sha }}"|grep -Eo "^[0-9a-z]{7}"|head -1) >> $GITHUB_ENV
     - name: Set TAG_NAME
       run: echo "TAG_NAME=cloudinit-""$(date +%Y%m%d)"""-"${{ env.SHSHA }}" >> $GITHUB_ENV
-    - name: Build payload
-      run: bash build-payload.sh
-    - name: Collect release assets
-      run: |
-        cp install.sh user-data.yaml dist/
-        cd dist
-        sha256sum install.sh user-data.yaml >>payload.tar.gz.sha256
-        mv payload.tar.gz.sha256 sha256sum.txt
-        cp sha256sum.txt payload.tar.gz.sha256
-        echo "RE_NOTE=mihomo $(cat mihomo_version.txt) / payload sha256 $(head -1 sha256sum.txt | cut -d' ' -f1)" >> $GITHUB_ENV
+    - name: Build seed ISO and offline bundle
+      run: bash build-bundle.sh
+    - name: Set release note
+      run: echo "RE_NOTE=mihomo $(cat dist/mihomo_version.txt) / $(head -1 dist/sha256sum.txt)" >> $GITHUB_ENV
     - name: Upload files to GitHub release
       uses: svenstaro/upload-release-action@master
       with:

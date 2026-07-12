@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+[ "$1" = "configure" ] || exit 0
+mkdir -p /www
+# Flag read by ppg.sh: geodata is bundled locally (see the ISO patcher).
+touch /www/clash_geo
+exit 0

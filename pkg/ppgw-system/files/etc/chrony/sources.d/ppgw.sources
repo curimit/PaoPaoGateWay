@@ -3,3 +3,7 @@
 server ntp.aliyun.com iburst
 server ntp.tencent.com iburst
 server ntp.ntsc.ac.cn iburst
+# IP fallbacks: usable even when name resolution is unavailable
+# (e.g. the gateway's own DNS hijack chain is up but clash is down).
+server 203.107.6.88 iburst
+server 114.118.7.163 iburst

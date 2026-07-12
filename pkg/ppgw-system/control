@@ -1,0 +1,15 @@
+Package: ppgw-system
+Version: @VERSION@
+Architecture: all
+Maintainer: curimit <curimit@users.noreply.github.com>
+Section: net
+Priority: optional
+Depends: ppgw-core, ppgw-geodata, ppgw-dashboard
+Description: System integration for PaoPao Gateway
+ Turns a stock Ubuntu server into the PaoPao Gateway appliance:
+ netplan (DHCP on every ethernet port), sysctl forwarding/tproxy knobs,
+ systemd-resolved stub listener off (frees port 53), chrony NTP sources
+ reachable from mainland China, and enabling ppgw.service.
+ .
+ Installing this package reconfigures host networking and DNS. It is the
+ top-level entry point of the ppgw package set.

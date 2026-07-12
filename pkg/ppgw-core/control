@@ -1,0 +1,13 @@
+Package: ppgw-core
+Version: @VERSION@
+Architecture: amd64
+Maintainer: curimit <curimit@users.noreply.github.com>
+Section: net
+Priority: optional
+Depends: chrony, nftables, inotify-tools, openvpn, ca-certificates, procps, iproute2
+Description: PaoPao Gateway runtime (cloud-init edition)
+ Runtime for the Ubuntu/cloud-init edition of PaoPaoGateWay: the ppgw
+ controller, mihomo (Meta) cores, sing-box sniffer, main loop scripts,
+ nftables tproxy scripts and the systemd unit.
+ .
+ Derived from https://github.com/kkkgo/PaoPaoGateWay (GPL-3.0).

@@ -1,0 +1,28 @@
+#!/bin/sh
+# ppgw-core postinst: pick the mihomo build for this CPU and enable the
+# sniffer chain by default (same defaults as the official ISO image).
+set -e
+[ "$1" = "configure" ] || exit 0
+
+mkdir -p /www /etc/ppgw
+
+# Select the mihomo core for this CPU (same idea as the ISO's MI switch).
+CLASH_BIN=/usr/lib/ppgw/mihomo_compatible
+if [ -x /usr/lib/ppgw/mihomo_v3 ] &&
+    /lib64/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q "x86-64-v3 (supported"; then
+    CLASH_BIN=/usr/lib/ppgw/mihomo_v3
+fi
+install -m 0755 "$CLASH_BIN" /usr/bin/clash
+
+# Sniffer chain (sing-box) is enabled by default, matching the ISO's
+# SNIFF=yes. Opt out with:  touch /etc/ppgw/no_sniff  and reinstall.
+if [ ! -f /etc/ppgw/no_sniff ]; then
+    sed -i 's/1082/1081/g' /usr/bin/nft.sh /usr/bin/nft_tcp.sh
+    sed -i 's/#forsniff//g' /usr/bin/nft.sh
+fi
+
+# Flag read by ppg.sh/ppgw: the core is mihomo (keeps RULE-SET support).
+touch /www/clash_core
+
+systemctl daemon-reload 2>/dev/null || true
+exit 0

@@ -1,0 +1,24 @@
+#!/bin/sh
+# ppgw-system postinst: the invasive appliance-ization bits that used to
+# live in install.sh. Idempotent; safe to re-run on upgrades.
+set -e
+[ "$1" = "configure" ] || exit 0
+
+# cloud-init must stop managing netplan (see 99-ppgw-network.cfg shipped
+# by this package); drop its generated per-interface config so that
+# 99-ppgw.yaml (DHCP on every e* port) owns networking.
+rm -f /etc/netplan/50-cloud-init.yaml /etc/netplan/90-default.yaml
+
+# Free port 53 (DNSStubListener=no is shipped by this package) and keep
+# /etc/resolv.conf pointing at the real upstream DNS learned from DHCP.
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+systemctl restart systemd-resolved 2>/dev/null || true
+
+# Pick up the ppgw NTP sources (chrony replaces systemd-timesyncd).
+systemctl restart chrony 2>/dev/null || true
+
+sysctl --system >/dev/null 2>&1 || true
+
+systemctl daemon-reload 2>/dev/null || true
+systemctl enable ppgw.service >/dev/null 2>&1 || true
+exit 0
