@@ -3,14 +3,14 @@ log() {
     log_msg=$1
     log_type=$2
     if [ "$log_type" = "warn" ]; then
-        echo -e "\033[31m[PaoPaoGW $(date +%H%M%S)]\033[0m ""$log_msg" >/dev/tty0
+        echo -e "\033[31m[PaoPaoGW $(date +%H%M%S)]\033[0m ""$log_msg"
         return 0
     fi
     if [ "$log_type" = "succ" ]; then
-        echo -e "\033[32m[PaoPaoGW $(date +%H%M%S)]\033[0m ""$log_msg" >/dev/tty0
+        echo -e "\033[32m[PaoPaoGW $(date +%H%M%S)]\033[0m ""$log_msg"
         return 0
     fi
-    echo -e "[PaoPaoGW $(date +%H%M%S)] ""$1" >/dev/tty0
+    echo -e "[PaoPaoGW $(date +%H%M%S)] ""$1"
 }
 if [ -f /etc/kill_netrec ]; then
     if ps ax | grep -v "grep" | grep "/usr/bin/ppgw" | grep "wsPort"; then
@@ -101,7 +101,7 @@ else
     exit 0
 fi
 if [ -f /tmp/ppgw.ini ]; then
-    . /tmp/ppgw.ini 2>/dev/tty0
+    . /tmp/ppgw.ini
 fi
 if [ -z "$max_rec" ]; then
     max_rec="5000"
@@ -151,7 +151,7 @@ fi
 if [ -z "$clash_web_password" ]; then
     clash_web_password="clashpass"
 fi
-/usr/bin/ppgw -wsPort="$clash_web_port" -secret="$(getsha256 "$clash_web_password")" -net_rec_num="$max_rec" -reckey="$reckey" >/dev/tty0 2>&1 &
+/usr/bin/ppgw -wsPort="$clash_web_port" -secret="$(getsha256 "$clash_web_password")" -net_rec_num="$max_rec" -reckey="$reckey" &
 echo "{\"clean\": \"ok\"}" >"$reload_touch"
 inotifywait -e delete -e access -e close_nowrite "$reload_touch"
 sleep 1

@@ -37,7 +37,7 @@ log "Installing dependencies..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get -o DPkg::Lock::Timeout=600 update -q || warn "apt update failed, trying to continue with cached lists."
 apt-get -o DPkg::Lock::Timeout=600 install -q -y \
-    nftables inotify-tools busybox psmisc openvpn curl ca-certificates \
+    nftables inotify-tools ntpsec-ntpdate psmisc openvpn curl ca-certificates \
     || die "Failed to install required packages."
 
 # ---------------------------------------------------------------- payload
@@ -105,7 +105,7 @@ install -m 0755 "$P/bin/ppgw" /usr/bin/ppgw
 install -m 0755 "$P/bin/sing-box" /usr/bin/sing-box
 log "clash core: $(/usr/bin/clash -v | head -1)"
 
-mkdir -p /etc/config/clash /www
+mkdir -p /etc/config/clash /www /etc/ppgw
 rm -rf /etc/config/clash/clash-dashboard
 cp -a "$P/clash-dashboard" /etc/config/clash/clash-dashboard
 cp -a "$P/geodata/." /etc/config/clash/

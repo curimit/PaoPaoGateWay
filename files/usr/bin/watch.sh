@@ -8,7 +8,7 @@ home="/etc/config/clash/clash-dashboard"
 
 if [ -f /tmp/ppgw.ini ]; then
     echo 1 >/etc/watch
-    . /tmp/ppgw.ini 2>/dev/tty0
+    . /tmp/ppgw.ini
     if [ -z "$clash_web_password" ]; then
         clash_web_password="clashpass"
     fi

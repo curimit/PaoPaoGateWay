@@ -1,6 +1,6 @@
 #!/bin/bash
 IPREX4='([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])'
-. /tmp/ppgw.ini 2>/dev/tty0
+. /tmp/ppgw.ini
 dns1=$(grep nameserver /etc/resolv.conf | grep -Eo "$IPREX4" | head -1)
 dns2=$(grep nameserver /etc/resolv.conf | grep -Eo "$IPREX4" | tail -1)
 if [ -z "$dns_ip" ]; then

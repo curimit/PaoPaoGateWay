@@ -94,7 +94,7 @@ PPSUB 组合订阅(`suburl="ppsub@..."`)同样完全支持,见[原版 PPSUB 指�
 | 配置注入 | Docker 定制 ISO / DHCP 发现 | cloud-init user-data / DHCP 发现 |
 | 运行时逻辑 | `ppg.sh` + `ppgw` + mihomo | **同源照搬,功能一致** |
 
-运行时脚本仅做了三处机械替换:bash 解释器、`ps ax`、`busybox ntpd`,与 PaoPaoDNS 的对接协议、配置格式、Web 面板、API 行为均与原版一致,可直接替换存量 ISO 网关。
+运行时脚本相对原版仅做机械替换:bash 解释器、`ps ax`、`ntpdate` 对时、日志走 systemd journal(原版写 `/dev/tty0`)、IPv6 开关改为 `/etc/ppgw/ipv6_enabled` 标志文件(原版读 uci 网络配置)。与 PaoPaoDNS 的对接协议、配置格式、Web 面板、API 行为均与原版一致,可直接替换存量 ISO 网关。
 
 ## FAQ
 
@@ -108,7 +108,7 @@ PPSUB 组合订阅(`suburl="ppsub@..."`)同样完全支持,见[原版 PPSUB 指�
 安装时已通过 `DNSStubListener=no` 释放 53 端口,并把 `/etc/resolv.conf` 指向 DHCP 下发的真实上游 DNS(脚本的 `paopao.dns` 发现依赖它)。
 
 **Q: 如何启用 IPv6?**
-默认与原版一致仅 IPv4。需要 IPv6 时:删除 `/etc/sysctl.d/99-ppgw.conf` 中的两行 `disable_ipv6`,在 `/etc/config/network` 中加入 `eth06` 段(格式见原版文档),并在 netplan 中启用 `dhcp6`,然后重启。
+默认与原版一致仅 IPv4。需要 IPv6 时:删除 `/etc/sysctl.d/99-ppgw.conf` 中的两行 `disable_ipv6`,创建标志文件 `touch /etc/ppgw/ipv6_enabled`,并在 `/etc/netplan/99-ppgw.yaml` 中启用 `dhcp6: true`,然后重启。
 
 **Q: 如何升级?**
 重新运行 `install.sh` 即可拉取最新 payload 覆盖安装,`/www/` 下的本地配置不受影响。
